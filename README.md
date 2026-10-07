@@ -69,3 +69,10 @@ npm run dev                # starts on http://localhost:5173
 - Resume file upload isn't wired to storage yet (`resumeUrl` is a plain text field) — plug in S3/Cloudinary + `multer` when ready.
 - Email sending is logged, not actually dispatched — swap in a real provider (SendGrid, Nodemailer) in `offerController.logCommunication`.
 - Add role-based route guards in the frontend if you want recruiters to not see the approve/reject buttons (currently hidden via `canApprove` check, but not enforced beyond that in the UI).
+
+## Landing page
+
+Logged-out visitors see an informational landing page at `/` (also always available at `/welcome`). It covers the recruitment workflow, team roles, a Ricoz franchise section modelled on https://ricoz.in/franchise/, an FAQ, and a franchise enquiry form.
+
+- Copy and franchise facts: `frontend/src/pages/landingContent.js`
+- Enquiry form posts to `POST /api/enquiries` (public); admins can read them with `GET /api/enquiries`. Stored in the `Enquiry` model.

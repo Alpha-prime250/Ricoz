@@ -9,6 +9,8 @@ import Interviews from "./pages/Interviews";
 import Offers from "./pages/Offers";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Landing from "./pages/Landing";
+import { useAuth } from "./context/AuthContext";
 
 function Protected({ children }) {
   return (
@@ -18,12 +20,18 @@ function Protected({ children }) {
   );
 }
 
+function Home() {
+  const { user } = useAuth();
+  return user ? <Protected><Dashboard /></Protected> : <Landing />;
+}
+
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/" element={<Protected><Dashboard /></Protected>} />
+      <Route path="/" element={<Home />} />
+      <Route path="/welcome" element={<Landing />} />
       <Route path="/jobs" element={<Protected><Jobs /></Protected>} />
       <Route path="/jobs/:id" element={<Protected><JobDetail /></Protected>} />
       <Route path="/candidates" element={<Protected><Candidates /></Protected>} />
