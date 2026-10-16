@@ -3,11 +3,15 @@ const Job = require("../models/Job");
 // Create a job requisition (starts pending approval)
 exports.createJob = async (req, res, next) => {
   try {
+    const count = await Job.countDocuments();
+    const requisitionId = `JR-${new Date().getFullYear()}-${String(count + 1).padStart(4, "0")}`;
     const job = await Job.create({
       ...req.body,
+      requisitionId,
       requestedBy: req.user._id,
       approvalStatus: "pending",
       status: "draft",
+      approvalHistory: [{ action: "submitted", by: req.user._id, role: req.user.role }],
     });
     res.status(201).json(job);
   } catch (err) {
@@ -27,6 +31,7 @@ exports.getJobs = async (req, res, next) => {
     const jobs = await Job.find(filter)
       .populate("requestedBy", "name email")
       .populate("approvedBy", "name email")
+      .populate("hiringManager", "name email")
       .sort({ createdAt: -1 });
     res.json(jobs);
   } catch (err) {
@@ -38,7 +43,9 @@ exports.getJob = async (req, res, next) => {
   try {
     const job = await Job.findById(req.params.id)
       .populate("requestedBy", "name email")
-      .populate("approvedBy", "name email");
+      .populate("approvedBy", "name email")
+      .populate("hiringManager", "name email")
+      .populate("approvalHistory.by", "name email");
     if (!job) return res.status(404).json({ message: "Job not found" });
     res.json(job);
   } catch (err) {
@@ -73,6 +80,14 @@ exports.decideApproval = async (req, res, next) => {
         approvedBy: req.user._id,
         approvalNote: note || "",
         status: decision === "approved" ? "open" : "closed",
+        $push: {
+          approvalHistory: {
+            action: decision,
+            by: req.user._id,
+            role: req.user.role,
+            comment: note || "",
+          },
+        },
       },
       { new: true }
     );

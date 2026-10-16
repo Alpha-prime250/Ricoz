@@ -17,6 +17,10 @@ const jobSchema = new mongoose.Schema(
     requirements: [{ type: String }],
     skills: [{ type: String }],
 
+    requisitionId: { type: String, index: true },
+    experienceRequired: { type: String, default: "" },
+    hiringManager: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+
     // Requisition / approval workflow
     requestedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     approvalStatus: {
@@ -26,6 +30,15 @@ const jobSchema = new mongoose.Schema(
     },
     approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     approvalNote: { type: String, default: "" },
+    approvalHistory: [
+      {
+        action: { type: String, enum: ["submitted", "approved", "rejected"] },
+        by: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        role: { type: String, default: "" },
+        comment: { type: String, default: "" },
+        at: { type: Date, default: Date.now },
+      },
+    ],
 
     // Publishing status
     status: {

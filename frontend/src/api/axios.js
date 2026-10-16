@@ -1,25 +1,26 @@
-
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://ricoz-jxf2.onrender.com/api",
-  headers: {
-    "Content-Type": "application/json",
-  },
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api",
 });
 
-api.interceptors.request.use(
-  (config) => {
+api.interceptors.request.use((config) => {
+  if (typeof window !== "undefined") {
     const token = localStorage.getItem("token");
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401 && typeof window !== "undefined") {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.href = "/login";
     }
-
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+    return Promise.reject(err);
   }
 );
 

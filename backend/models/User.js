@@ -12,6 +12,8 @@ const userSchema = new mongoose.Schema(
       default: "recruiter",
     },
     department: { type: String, default: "" },
+    resetPasswordToken: { type: String, select: false },
+    resetPasswordExpires: { type: Date, select: false },
   },
   { timestamps: true }
 );
@@ -30,6 +32,8 @@ userSchema.methods.comparePassword = function (candidate) {
 userSchema.methods.toSafeObject = function () {
   const obj = this.toObject();
   delete obj.password;
+  delete obj.resetPasswordToken;
+  delete obj.resetPasswordExpires;
   return obj;
 };
 

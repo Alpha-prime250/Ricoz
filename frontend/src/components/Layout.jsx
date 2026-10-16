@@ -1,16 +1,25 @@
+"use client";
+
 import { useEffect, useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
-import { Menu, X, Moon, Sun, RotateCcw, LogOut } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
-import { useTheme } from "../context/ThemeContext";
-import api from "../api/axios";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  Menu, X, Moon, Sun, RotateCcw, LogOut, LayoutDashboard, Users, Briefcase,
+  KanbanSquare, CalendarCheck, FileText, ClipboardCheck,
+} from "lucide-react";
+import Logo from "@/components/Logo";
+import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
+import api from "@/api/axios";
 
 const links = [
-  { to: "/", label: "Overview", end: true, countKey: null },
-  { to: "/jobs", label: "Requisitions", countKey: "jobs" },
-  { to: "/candidates", label: "Candidates", countKey: "candidates" },
-  { to: "/interviews", label: "Interviews", countKey: "interviews" },
-  { to: "/offers", label: "Offers", countKey: "offers" },
+  { to: "/dashboard", label: "Overview", icon: LayoutDashboard, countKey: null },
+  { to: "/candidates", label: "Candidates", icon: Users, countKey: "candidates" },
+  { to: "/jobs", label: "Jobs", icon: Briefcase, countKey: "jobs" },
+  { to: "/pipeline", label: "Hiring Pipeline", icon: KanbanSquare, countKey: null },
+  { to: "/interviews", label: "Interviews", icon: CalendarCheck, countKey: "interviews" },
+  { to: "/offers", label: "Offers", icon: FileText, countKey: "offers" },
+  { to: "/approvals", label: "Approvals", icon: ClipboardCheck, countKey: null, roles: ["admin", "hiring_manager"] },
 ];
 
 function initials(name = "") {
@@ -20,7 +29,8 @@ function initials(name = "") {
 export default function Layout({ children }) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const navigate = useNavigate();
+  const router = useRouter();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [counts, setCounts] = useState({});
   const [resetting, setResetting] = useState(false);
@@ -53,7 +63,7 @@ export default function Layout({ children }) {
       await api.post("/admin/reset-demo-data");
       logout();
       alert("Demo data reset. Sign back in with admin@ricozrecruit.com / password123 (or the other seeded accounts).");
-      navigate("/login");
+      router.push("/login");
     } catch (err) {
       alert(err.response?.data?.message || "Could not reset demo data.");
     } finally {
@@ -63,29 +73,28 @@ export default function Layout({ children }) {
 
   const sidebarContent = (
     <>
-      <div>
-        <span className="eyebrow-badge">People &amp; HR</span>
-        <div className="brand">
-          <h1>RicozRecruit</h1>
-          <small>Full recruitment lifecycle</small>
-        </div>
+      <div className="brand">
+        <Logo size={34} tagline />
       </div>
 
-      {links.map((l) => (
-        <NavLink
-          key={l.to}
-          to={l.to}
-          end={l.end}
-          onClick={() => setOpen(false)}
-          className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}
-        >
-          <span className="nav-dot" />
-          {l.label}
-          {l.countKey && counts[l.countKey] !== undefined && (
-            <span className="nav-count">{counts[l.countKey]}</span>
-          )}
-        </NavLink>
-      ))}
+      {links.filter((l) => !l.roles || l.roles.includes(user?.role)).map((l) => {
+        const Icon = l.icon;
+        const isActive = pathname === l.to || pathname.startsWith(l.to + "/");
+        return (
+          <Link
+            key={l.to}
+            href={l.to}
+            onClick={() => setOpen(false)}
+            className={"nav-link" + (isActive ? " active" : "")}
+          >
+            <Icon size={18} />
+            {l.label}
+            {l.countKey && counts[l.countKey] !== undefined && (
+              <span className="nav-count">{counts[l.countKey]}</span>
+            )}
+          </Link>
+        );
+      })}
 
       <div className="sidebar-footer">
         <div className="user-chip">
@@ -108,7 +117,7 @@ export default function Layout({ children }) {
           className="pill-btn"
           onClick={() => {
             logout();
-            navigate("/login");
+            router.push("/login");
           }}
         >
           <LogOut /> Logout
@@ -123,9 +132,7 @@ export default function Layout({ children }) {
         <button className="hamburger-btn" onClick={() => setOpen(true)} aria-label="Open menu">
           <Menu size={18} />
         </button>
-        <div className="brand">
-          <h1>RicozRecruit</h1>
-        </div>
+        <Logo size={26} />
         <div className="avatar">{initials(user?.name)}</div>
       </div>
 
