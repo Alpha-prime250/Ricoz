@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import Spinner from "@/components/Spinner";
 import Pagination from "@/components/Pagination";
 import ReviewModal from "@/components/ReviewModal";
+import { JobCard, KpiCard } from "@/components/Cards";
 import { EMPLOYMENT_LABEL, fmtDate, jobStatusLabel } from "@/lib/format";
 
 const PAGE_SIZE = 8;
@@ -22,12 +23,15 @@ export default function Jobs() {
   const [page, setPage] = useState(1);
   const [menu, setMenu] = useState(null);
   const [review, setReview] = useState(null);
+  const [apps, setApps] = useState([]);
+  const [view, setView] = useState("table");
 
   const canApprove = ["admin", "hiring_manager"].includes(user?.role);
 
   const load = async () => {
     const { data } = await api.get("/jobs");
     setJobs(data);
+    api.get("/applications").then((r) => setApps(r.data)).catch(() => {});
   };
   useEffect(() => { load(); }, []);
   useEffect(() => setPage(1), [q, dept, loc, status]);
@@ -53,6 +57,11 @@ export default function Jobs() {
 
   if (!jobs) return <Spinner label="Loading jobs..." />;
 
+  const applicantsOf = (id) => apps.filter((a) => (a.job?._id || a.job) === id).length;
+  const openJobs = list.filter((j) => jobStatusLabel(j).key === "open");
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const openedThisMonth = openJobs.filter((j) => new Date(j.createdAt) >= monthStart).length;
+
   const stats = [
     { label: "Total Jobs", value: list.length, icon: Briefcase },
     { label: "Open Jobs", value: list.filter((j) => jobStatusLabel(j).key === "open").length, icon: CheckCircle2 },
@@ -65,6 +74,10 @@ export default function Jobs() {
       <div className="rz-head">
         <div><h2>Jobs</h2><p>Requisitions from request to approval</p></div>
         <div className="rz-head-tools">
+          <div className="rz-view-toggle" role="group" aria-label="View">
+            <button className={view === "table" ? "active" : ""} onClick={() => setView("table")}>Table</button>
+            <button className={view === "cards" ? "active" : ""} onClick={() => setView("cards")}>Cards</button>
+          </div>
           <Link href="/jobs/new" className="btn"><Plus size={15} /> Create Requisition</Link>
         </div>
       </div>
@@ -102,6 +115,22 @@ export default function Jobs() {
         </select>
       </div>
 
+      {view === "cards" ? (
+        <div className="rz-cards-grid">
+          <KpiCard label="Open Positions" value={openJobs.length} note={`+${openedThisMonth} this month`} />
+          {rows.map((j) => (
+            <JobCard
+              key={j._id}
+              id={j._id}
+              title={j.title}
+              location={j.location}
+              type={EMPLOYMENT_LABEL[j.employmentType]}
+              applicants={applicantsOf(j._id)}
+            />
+          ))}
+          {filtered.length === 0 && <div className="empty-state"><Briefcase size={28} /><div>{list.length ? "No jobs match these filters." : "No job requisitions yet."}</div></div>}
+        </div>
+      ) : (
       <div className="rz-panel" style={{ padding: 8 }}>
         <div className="table-wrap">
           <table className="rz-table rz-table-full rz-table-light">
@@ -154,6 +183,7 @@ export default function Jobs() {
           </div>
         )}
       </div>
+      )}
       <Pagination page={page} pages={pages} onChange={setPage} />
 
       {review && <ReviewModal job={review} onClose={() => setReview(null)} onDone={() => { setReview(null); load(); }} />}

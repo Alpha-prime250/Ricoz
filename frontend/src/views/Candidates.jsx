@@ -7,6 +7,7 @@ import { Users, Plus, Search, SlidersHorizontal, MoreHorizontal, UserCheck, Cale
 import api from "@/api/axios";
 import Spinner from "@/components/Spinner";
 import Avatar from "@/components/Avatar";
+import { CandidateCard } from "@/components/Cards";
 import Pagination from "@/components/Pagination";
 import AddCandidateModal from "@/components/AddCandidateModal";
 import { Field } from "@/components/AuthParts";
@@ -26,6 +27,7 @@ export default function Candidates() {
   const [page, setPage] = useState(1);
   const [menu, setMenu] = useState(null);
   const [selected, setSelected] = useState([]);
+  const [view, setView] = useState("table");
 
   const load = async () => {
     const [c, a] = await Promise.all([api.get("/candidates"), api.get("/applications")]);
@@ -90,6 +92,10 @@ export default function Candidates() {
       <div className="rz-head">
         <div><h2>Candidates</h2><p>Everyone sourced across your open roles</p></div>
         <div className="rz-head-tools">
+          <div className="rz-view-toggle" role="group" aria-label="View">
+            <button className={view === "table" ? "active" : ""} onClick={() => setView("table")}>Table</button>
+            <button className={view === "cards" ? "active" : ""} onClick={() => setView("cards")}>Cards</button>
+          </div>
           <button className="btn secondary" onClick={() => setPanel((p) => !p)}><SlidersHorizontal size={15} /> Filters</button>
           <button className="btn" onClick={() => setAdding(true)}><Plus size={15} /> Add Candidate</button>
         </div>
@@ -128,6 +134,21 @@ export default function Candidates() {
             )}
           </div>
 
+          {view === "cards" ? (
+            <div className="rz-cards-grid">
+              {rows.map((c) => (
+                <CandidateCard
+                  key={c._id}
+                  id={c._id}
+                  name={c.name}
+                  role={c.currentTitle}
+                  status={stageOf[c._id]}
+                  statusLabel={stageOf[c._id] ? STAGE_LABEL[stageOf[c._id]] : null}
+                />
+              ))}
+              {filtered.length === 0 && <div className="empty-state"><Users size={28} /><div>{list.length ? "No candidates match these filters." : "No candidates sourced yet."}</div></div>}
+            </div>
+          ) : (
           <div className="rz-panel" style={{ padding: 8 }}>
             <div className="table-wrap">
               <table className="rz-table rz-table-full rz-table-light">
@@ -177,6 +198,7 @@ export default function Candidates() {
             )}
             <p className="muted" style={{ margin: "10px 12px 4px" }}>Showing {rows.length} of {filtered.length} candidates</p>
           </div>
+          )}
           <Pagination page={page} pages={pages} onChange={setPage} />
         </div>
 
